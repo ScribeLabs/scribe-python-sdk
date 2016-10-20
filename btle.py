@@ -27,6 +27,8 @@ class RunScribeDevice(ServiceBase):
         self._char.start_notify(self._data_received)
         self._responses = {chr(i): Queue.Queue() for i in range(0x41, 0x5a + 1)}
         self.files = []
+        self.file_update = False
+        self.file_read = False
 
     def _data_received(self, data):
         if data[0] == "D":
@@ -46,8 +48,13 @@ class RunScribeDevice(ServiceBase):
             raise Exception("Packet length > 20")
 
     # Commands
-    def soft_reboot(self):
-        self.write_packet("A\x00")
+    def reboot(self, type=0):
+        if type == 0:
+            # soft/default reboot
+            self.write_packet("A\x00")
+        elif type == 1:
+            # hard reboot
+            self.write_packet("A\x01")
 
     def hard_reboot(self):
         self.write_packet("A\x01")
@@ -72,20 +79,31 @@ class RunScribeDevice(ServiceBase):
     def load_file_list(self, all_files=True):
         # Alternative to all files is undeleted files
         self.write_packet("D" + chr(1 if all_files else 2))
+        self.file_update = False
+        while not self.file_update:
+            pass
+
+        return self.files
 
     def _update_fs(self, resp):
         result = OD(zip(["file list number", "file list index", "file size", "file date", "crc high",
                            "crc low", "crc valid", "file deleted", "MSB", "LSB", "file status"],
                           struct.unpack(">BBIIBBBBBBB", resp[1:18])))
+
         result["crc valid"] = result["crc valid"] == 1
         result["file deleted"] = result["file deleted"] == 2
         result["file status"] = ["normal", "truncated", "restored"][result["file status"]]
+
         if result["file size"] == 0xFFFFFFFF:
             result["file size"] = 0
+
         if not result in self.files:
             self.files.append(result)
 
-    def get_file_info(self, file_list_index, file_block_size):
+        self.file_update = True
+
+
+    def get_file_info(self, file_list_index, file_block_size=16):
         self.write("I" + struct.pack("BB", file_list_index, file_block_size))
         resp = self._responses["I"].get()
         result = OD(zip(["version major", "version minor", "file list index", "total size", "file point reg",
@@ -99,7 +117,7 @@ class RunScribeDevice(ServiceBase):
     def get_led_color(self):
         self.write_packet("K")
         resp = self._responses["K"].get()
-        r, g, b = struct.unpack("BBB", resp[1:4])
+        r, g, b = struct.unpack(">BBB", resp[1:4])
         return (r, g, b)
 
     def read_data(self, file_list_index, file_point_reg, file_block_size=16):
@@ -136,6 +154,17 @@ class RunScribeDevice(ServiceBase):
         resp = self._responses["W"].get()
         return OD(zip(["version major", "version minor", "system time", "last access time", "last boot time",
                        "time since last boot"], struct.unpack(">BBIIII", resp[1:19])))
+
+    def pooling_status(self):
+        self.write_packet("N")
+        resp = self._responses["N"].get()
+        return OD(zip(["version major", "version minor"], struct.unpack(">BB", resp[1:3])))
+
+    def erase_data(self, erase_type=4 , erase_bit_mask=1):
+        self.write_packet("E" + struct.pack(">BB", erase_type, erase_bit_mask))
+        resp = self._responses["E"].get()
+        return OD(zip(["version major", "version minor", "erase flash result", "file total size", "file point reg",
+                         "crc high", "crc low"], struct.unpack(">BBBIIBB", resp[1:14])))
 
 # Thread-Safe interface to bluetooth module
 class BTLE:
