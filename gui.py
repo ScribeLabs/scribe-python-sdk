@@ -9,6 +9,7 @@ import threading
 def main(bt, child):
     devicelist = {}
     scribe = None
+    print 'test'
 
     def update_list(devices):
         for device in devices:
