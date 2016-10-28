@@ -537,37 +537,89 @@ def replace_keys(data_dict, format_dict):
 
 if __name__ == "__main__":
 
-	file_path = '../../data_files/'
-	file_name = 'P4S16B_REC3.fit'
-	output_raw_file_name = 'P4S16B_REC3_raw_python.csv'
+  file_path = '../../data_files/python_sdk_example/'
+  file_name = 'P4S16B_REC3.fit'
+  output_file_1 = 'P4S16B_REC3_1.csv'
+  output_file_2 = 'P4S16B_REC3_2.csv'
 
-	file_obj = open(file_path + file_name, 'rb')
-	raw_fit_data = file_obj.read()
-	fitfile  = FitFile(raw_fit_data)
-	data_messages = fitfile.messages
+  file_obj = open(file_path + file_name, 'rb')
+  raw_fit_data = file_obj.read()
+  fitfile  = FitFile(raw_fit_data)
+  data_messages = fitfile.messages
 
-	all_data_dict = {}
+  all_data_dict = {}
 
-	for key in definition_map.keys():
-		format = definition_map[key]
-		definitions[format] = append_unknown_to_keys(definitions[format])
+  for key in definition_map.keys():
+    format = definition_map[key]
+    definitions[format] = append_unknown_to_keys(definitions[format])
 
-	f = open(file_path + output_raw_file_name, 'w')
-	for i in range(0, len(data_messages)):
-		mesg_num = str(data_messages[i].mesg_num)
-		format = definition_map[mesg_num]
-		format_dict = definitions[format]
-		data_dict = data_messages[i].get_values()
-		data_dict = replace_keys(data_dict, format_dict)
-		all_data_dict[str(i)] = data_dict
-		string = ''
-		for key in data_dict.keys(): 
-			if string :
-				string = string + ',' + key + ',' + str(data_dict[key])
-			else :
-				string = string + key + ',' + str(data_dict[key])
-		string = string + "\n"
-		f.write(string)
-	f.close()
+  f = open(file_path + output_file_1, 'w')
+  num_of_fields = len(data_messages[0].get_values())
+  string = ''
+
+  all_mesg_num = []
+  header_list = []
+  file_id = []
+
+  for i in range(0, len(data_messages)):
+    mesg_num = str(data_messages[i].mesg_num)
+    format = definition_map[mesg_num]
+    format_dict = definitions[format]
+    data_dict = data_messages[i].get_values()
+    data_dict = replace_keys(data_dict, format_dict)
+    if mesg_num not in all_mesg_num:
+      all_mesg_num.append(mesg_num)
+      if mesg_num != '0':
+        header_list = header_list + data_dict.keys()
+    if format == "file_id" :
+      file_id = data_dict
+    else :
+      all_data_dict[str(i)] = data_dict
+    row_str = mesg_num + ',' + format
+    for key in data_dict.keys(): 
+      if row_str :
+        row_str = row_str + ',' + key + ',' + str(data_dict[key])
+      else :
+        row_str = row_str + key + ',' + str(data_dict[key])
+    row_str = row_str + "\n"
+    string = string + row_str
+    if len(data_dict) > num_of_fields:
+      num_of_fields = len(data_dict)
+
+  header_str = 'Local Number, Message'
+  for i in range(1,num_of_fields + 1):
+    if header_str :
+      header_str = header_str + ',' + 'Field ' + str(i) + ',' + 'Value ' + str(i)
+    else :
+      header_str = header_str + 'Field ' + str(i) + ',' + 'Value ' + str(i)
+  header_str = header_str + "\n"
+  string = header_str + string
+  f.write(string)
+  f.close()
+
+  
+  f = open(file_path + output_file_2, "w")
+  string = ''
+  header_list = list(set(header_list))
+  for header in header_list:
+    string = string + header + ','
+  string  = string + "\n"
+
+  for i in range(1, len(data_messages)):
+    mesg_num = str(data_messages[i].mesg_num)
+    format = definition_map[mesg_num]
+    format_dict = definitions[format]
+    data_dict = data_messages[i].get_values()
+    data_dict = replace_keys(data_dict, format_dict)
+    row = ''
+    for header in header_list:
+      if header in data_dict.keys():
+        row = row + str(data_dict[header]) + ','
+      else:
+        row = row + ','
+    row = row + "\n"
+    string = string + row
+  f.write(string)
+  f.close()
 
 
