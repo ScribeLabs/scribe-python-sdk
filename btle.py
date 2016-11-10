@@ -32,7 +32,6 @@ class RunScribeDevice(ServiceBase):
         self.file_read = False
 
     def _data_received(self, data):
-        print "In data received : " + data[0] 
         if data[0] == "D":
             self._update_fs(data)
         elif data[0] == "R":
@@ -122,8 +121,8 @@ class RunScribeDevice(ServiceBase):
         r, g, b = struct.unpack(">BBB", resp[1:4])
         return (r, g, b)
 
-    def set_led_color(self):
-        self.write_packet("J" + chr(255) + chr(0) + chr(0))
+    def set_led_color(self, r, g, b):
+        self.write_packet("J" + chr(r) + chr(g) + chr(b))
         resp = self._responses["J"].get()
         r, g, b = struct.unpack(">BBB", resp[1:4])
         return (r, g, b)        
@@ -135,8 +134,8 @@ class RunScribeDevice(ServiceBase):
         point = ord(resp[1]) << 16 + ord(resp[2]) << 8 + ord(resp[3])
         data = resp[4:20]
         f = open('temp.fit', 'a')
-        #print "data: ", repr(data)
-        f.write(repr(data))
+        for d in data:
+            f.write(d)
         f.close()
 
     def status(self):
@@ -184,11 +183,7 @@ class RunScribeDevice(ServiceBase):
                          "crc high", "crc low"], struct.unpack(">BBBIIBB", resp[1:14])))
 
     def manufacturing_mode(self, state=0): # 0 - off, 1 - on
-        #if state==0 :
-        #    self.write_packet("H" + struct.pack(">B", state))
         self.write_packet("H" + struct.pack(">B", state))
-        #else :
-        #    self.write_packet("H\x01")
         print 'written packet'
         resp = self._responses["H"].get()
         return OD(zip(["version major", "version minor"], struct.unpack(">BB", resp[1:3])))
@@ -225,8 +220,8 @@ class RunScribeDevice(ServiceBase):
                             "compass 5", "quat 0", "quat 1", "quat 2", "quat 3", "quat 4", "quat 5",
                             "quat 6", "quat 7"], struct.unpack("BBBBBBBBBBBBBBB", resp[1:16])))
 
-    def light_led(self):
-        self.write_packet("L" + chr(13) + "\x01\x00\x00\xFF")
+    def light_led(self, mode, cycles, r, g, b):
+        self.write_packet("L" + chr(mode) + chr(cycles) +  chr(r) + chr(g) + chr(b))
         resp = self._responses["L"].get()
         return OD(zip(["Mode", "cycles", "R" , "G", "B"],struct.unpack("BBBBB", resp[1:6])))
 
@@ -266,8 +261,8 @@ class RunScribeDevice(ServiceBase):
         resp = self._responses["V"].get()
         return OD(zip(["config block size", "config point buf"], struct.unpack("HB", resp[1:4])))
 
-    def perform_diagnostics(self):
-        self.write_packet("X\x00")
+    def perform_diagnostics(self, updateCalibration=0):
+        self.write_packet("X" + chr(updateCalibration))
         resp = self._responses["X"].get()
         return OD(zip(["version major", "version minor", "diagnostics status", "diagnostics result"],struct.unpack("BBBB", resp[1:5])))
 

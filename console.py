@@ -17,7 +17,7 @@ def main(bt):
         for device in current_devices:
             if not device in devices:
                 devices.append(device)
-                print "#{}: {} {} {} {}".format(devices.index(device), device.name, device.id, device.is_connected, device.advertised)
+                print "#{}: {} {} {} {} ".format(devices.index(device), device.name, device.id, device.is_connected, device.advertised)
     print "Type number of device + enter to connect"
     bt.scan(update_list)
 
@@ -44,7 +44,12 @@ def main(bt):
             file_point_buffer = int(raw_input())
             print_dict(scribe.update_crc_checksum(file_block_size, file_point_buffer))
         elif cmd == "load file list":
-            files = scribe.load_file_list()
+            print "0,1 - All files, 2 - undeleted file"
+            files = int(raw_input())
+            all_files = True
+            if files == 2 :
+                all_files = False
+            files = scribe.load_file_list(all_files)
             for f in files:
                 print_dict(f)
         elif cmd == "erase data":
@@ -56,28 +61,51 @@ def main(bt):
         elif cmd == "DFU mode":
             scribe.DFU_mode()
             print "Scribe in DFU mode"
-        #elif cmd == "real time polling":
-        #    print "Enter mode (0 => Accel, 1 => Gyro, 2 => Compass):"
-        #    mode = int(raw_input())
-        #    print_dict(scribe.real_time_polling(mode))
-        #elif cmd == "manufacturing mode": # deep motion sleep
-        #    print "state : (0 - off, 1 - on)"
-        #    state = int(raw_input())
-        #    print_dict(scribe.manufacturing_mode(state))
+        elif cmd == "real time polling":
+            print "Enter mode (0 => Accel, 1 => Gyro, 2 => Compass):"
+            mode = int(raw_input())
+            print_dict(scribe.real_time_polling(mode))
+        elif cmd == "manufacturing mode": # deep motion sleep
+            print "state : (0 - off, 1 - on)"
+            state = int(raw_input())
+            print_dict(scribe.manufacturing_mode(state))
         elif cmd == "file information":
             print "Type file index : "
             file_idx = int(raw_input())
-            print_dict(scribe.get_file_info(file_idx))
-        #elif cmd == "set led color":
-        #    r, g, b = scribe.set_led_color()
-        #    string = 'Red : ' + str(r) + ', Green: ' + str(g) + ', Blue: ' + str(b)
-        #    print string
-        #elif cmd == "get led color":
-        #    r, g, b = scribe.get_led_color()
-        #    string = 'Red : ' + str(r) + 'Green: ' + str(g) + 'Blue: ' + str(b)
-        #    print string
+            print "File block size (default - 16) : "
+            block_size = int(raw_input())
+            print_dict(scribe.get_file_info(file_idx, block_size))
+        elif cmd == "set led color":
+            r = 0 ; g = 0 ; b = 0
+            print 'Select color (0 - green, 1 - yellow, 2 - blue, 3 - purple): '
+            color = int(raw_input())
+            if color == 1 :
+                r = 255 ; g = 255
+            elif color == 2 :
+                b = 255
+            elif color == 3 :
+                r = 255 ; b = 255
+            else : 
+                g = 255
+            r, g, b = scribe.set_led_color(r, g, b)
+            string = 'Red : ' + str(r) + ', Green: ' + str(g) + ', Blue: ' + str(b)
+            print string
+        elif cmd == "get led color":
+            r, g, b = scribe.get_led_color()
+            string = 'Red : ' + str(r) + ', Green: ' + str(g) + ', Blue: ' + str(b)
+            print string
         elif cmd == "light":
-            print_dict(scribe.light_led())
+            print "Mode (13 - connected, 14 - recording, 15 - syncing, 16 - sync_complete, 17 - low battery) :"
+            mode = int(raw_input())
+            print "cycles (default 1): "
+            cycles = int(raw_input())
+            print "Red : "
+            r = int(raw_input())
+            print "Green : "
+            g = int(raw_input())
+            print "Blue : "
+            b = int(raw_input())
+            print_dict(scribe.light_led(mode, cycles, r, g, b))
         elif cmd == "set mode":
             print "Command (0 - N/A, 1 - record, 2 - pause, 3 - sync) : "
             command = int(raw_input())
@@ -97,19 +125,26 @@ def main(bt):
         elif cmd == "status":
             print_dict(scribe.status())
         elif cmd == "set time":
-            print_dict(scribe.set_time(805306370, 1, 1, 2))
+            devicetime = []
+            for i in range(0,4):
+                print "device time " + i + " : "
+                devicetime[i] = int(raw_input())
+            print_dict(scribe.set_time(devicetime[0], devicetime[1], devicetime[2], devicetime[3]))
         elif cmd == "read time":
             print_dict(scribe.read_time())
         elif cmd == "read configuration data":
             print "Enter config point (0xAA01..7): "
             configpoint = int(raw_input(),16)
-            print_dict(scribe.read_config_data(configblocksize = 16, configpoint = configpoint))
+            print "Enter config block size (default - 16 ) : "
+            blocksize = int(raw_input())
+            print_dict(scribe.read_config_data(configblocksize = blocksize, configpoint = configpoint))
         elif cmd == "write configuration data":
             print "Enter config point (0xAA01..7))"
             configpoint = int(raw_input(),16)
             if configpoint == 0xAA01 or configpoint == 0xAA03:
                 print "config block size : "
                 configblocksize = int(raw_input())
+                bledevice = []
                 for i in range(0,17) :
                     print "ble device " + str(i) + " : "
                     bledevice[i] = int(raw_input())
@@ -125,6 +160,7 @@ def main(bt):
                 heel_lace = int(raw_input())
                 print "right/left : "
                 right_left = int(raw_input())
+                device_time = []
                 for i in range(0,4):
                     print "device time " + str(i) + " : "
                     device_time[i] = int(raw_input())
@@ -201,9 +237,13 @@ def main(bt):
                 packet = struct.pack(">BHB", configblocksize, 7, bettery_capacity)
             print_dict(scribe.write_config_data(packet))
         elif cmd == "perform diagnostics":
-            print_dict(scribe.perform_diagnostics())
+            print "update Calibration (default 0) :  "
+            updateCalibration = int(raw_input())
+            print_dict(scribe.perform_diagnostics(updateCalibration))
         elif cmd == "get diagnostics results":
-            print_dict(scribe.get_diagnostics_results())
+            print "packet Offset (default 0) : "
+            packetOffset = int(raw_input())
+            print_dict(scribe.get_diagnostics_results(packetOffset))
         elif cmd == "device information service":
             dis = DeviceInformation(device)
             # Print out the DIS characteristics.
@@ -216,6 +256,11 @@ def main(bt):
             print('System ID: {0}'.format(dis.system_id))
             print('Regulatory Cert: {0}'.format(dis.regulatory_cert))
             print('PnP ID: {0}'.format(dis.pnp_id))
+        elif cmd == "disconnect":
+            print "Disconecting device "
+            print "#{}: {} {} {} {}".format(devices.index(device), device.name, device.id, device.is_connected, device.advertised)
+            bt.disconnect()
+
     bt.end()
 
 bt = BTLE()
