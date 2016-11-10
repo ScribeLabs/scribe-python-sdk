@@ -128,7 +128,7 @@ def main(bt):
             devicetime = []
             for i in range(0,4):
                 print "device time " + i + " : "
-                devicetime[i] = int(raw_input())
+                devicetime.append(int(raw_input()))
             print_dict(scribe.set_time(devicetime[0], devicetime[1], devicetime[2], devicetime[3]))
         elif cmd == "read time":
             print_dict(scribe.read_time())
@@ -147,7 +147,7 @@ def main(bt):
                 bledevice = []
                 for i in range(0,17) :
                     print "ble device " + str(i) + " : "
-                    bledevice[i] = int(raw_input())
+                    bledevice.append(int(raw_input()))
                 packet = struct.pack(">HBBBBBBBBBBBBBBBBB", configblocksize, 1, bledevice[0], bledevice[1], bledevice[2],
                         bledevice[3], bledevice[4], bledevice[5], bledevice[6], bledevice[7], bledevice[8], bledevice[9], bledevice[10],
                         bledevice[11], bledevice[12], bledevice[13], bledevice[14], bledevice[15], bledevice[16])
@@ -163,7 +163,7 @@ def main(bt):
                 device_time = []
                 for i in range(0,4):
                     print "device time " + str(i) + " : "
-                    device_time[i] = int(raw_input())
+                    device_time.append(int(raw_input())) 
                 print "device sample rate : "
                 device_sample_rate = int(raw_input())
                 print "sensitivity : "
