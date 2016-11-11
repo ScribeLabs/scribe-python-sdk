@@ -127,7 +127,7 @@ def main(bt):
         elif cmd == "set time":
             devicetime = []
             for i in range(0,4):
-                print "device time " + i + " : "
+                print "device time " + str(i) + " : "
                 devicetime.append(int(raw_input()))
             print_dict(scribe.set_time(devicetime[0], devicetime[1], devicetime[2], devicetime[3]))
         elif cmd == "read time":

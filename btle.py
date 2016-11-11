@@ -163,9 +163,8 @@ class RunScribeDevice(ServiceBase):
         return OD(zip(["version major", "version minor", "system time", "last access time", "last boot time",
                        "time since last boot"], struct.unpack(">BBIIII", resp[1:19])))
 
-    # TODO: Don't know what is device_time_*
     def set_time(self, device_time_0, device_time_1, device_time_2, device_time_3):
-        self.write_packet("T" + struct.pack(">IIII", device_time_0, device_time_1, device_time_2, device_time_3))
+        self.write_packet("T" + struct.pack(">BBBB", device_time_0, device_time_1, device_time_2, device_time_3))
         resp = self._responses["T"].get()
         return OD(zip(["version_major", "version_minor"], struct.unpack(">BB", resp[1:3])))
 
