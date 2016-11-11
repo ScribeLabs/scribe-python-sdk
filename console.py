@@ -112,8 +112,8 @@ def main(bt):
             print "state : (0 - off, 1 - on)"
             state = int(raw_input())
             print_dict(scribe.set_mode(command, state))
-        elif cmd == "pooling status":
-            print_dict(scribe.pooling_status())
+        elif cmd == "polling status":
+            print_dict(scribe.polling_status())
         elif cmd == "stop read data":
             print_dict(scribe.stop_read_data())
         elif cmd == "read data":
@@ -145,12 +145,12 @@ def main(bt):
                 print "config block size : "
                 configblocksize = int(raw_input())
                 bledevice = []
-                for i in range(0,17) :
+                for i in range(0,16) :
                     print "ble device " + str(i) + " : "
                     bledevice.append(int(raw_input()))
-                packet = struct.pack(">HBBBBBBBBBBBBBBBBB", configblocksize, 1, bledevice[0], bledevice[1], bledevice[2],
+                packet = struct.pack(">BHBBBBBBBBBBBBBBBB", configblocksize, configpoint, bledevice[0], bledevice[1], bledevice[2],
                         bledevice[3], bledevice[4], bledevice[5], bledevice[6], bledevice[7], bledevice[8], bledevice[9], bledevice[10],
-                        bledevice[11], bledevice[12], bledevice[13], bledevice[14], bledevice[15], bledevice[16])
+                        bledevice[11], bledevice[12], bledevice[13], bledevice[14], bledevice[15])
             elif configpoint == 0xAA02:
                 print "config block size : "
                 configblocksize = int(raw_input())
@@ -178,9 +178,9 @@ def main(bt):
                 max_conn_interval = int(raw_input())
                 print "ble slave latency : "
                 ble_slave_latency = int(raw_input())
-                packet = struct.pack(">HBBBBBBBBBBBBBBB", configblocksize, 2, bledevice_ledcolor, heel_lace,
-                               right_left, device_time[0], device_time[1], device_time[2], device_time[3], device_sample_rate, 
-                               sensitivity, timeout, stride_rate, min_conn_interval, max_conn_interval, ble_slave_latency)
+                packet = struct.pack(">BHBBBBBBBBBBBBBB", configblocksize, configpoint, bledevice_ledcolor, heel_lace,
+                    right_left, device_time[0], device_time[1], device_time[2], device_time[3], device_sample_rate, 
+                    sensitivity, timeout, stride_rate, min_conn_interval, max_conn_interval, ble_slave_latency)
             elif configpoint == 0xAA04:
                 print "config block size : "
                 configblocksize = int(raw_input())
@@ -195,7 +195,7 @@ def main(bt):
                 print "scale factor A : "
                 scale_factor_A = int(raw_input())
                 print "scale factor B : "
-                stride_rate = int(raw_input())
+                scale_factor_B = int(raw_input())
                 print "min recording voltage MSB : "
                 min_recording_voltage_MSB = int(raw_input())
                 print "min recording voltage LSB : "
@@ -210,7 +210,7 @@ def main(bt):
                 G = int(raw_input())
                 print "B : "
                 B = int(raw_input())
-                packet = struct.pack(">HBBBBBBBBBBBBBB", configblocksize, 4, heel_lace, right_left, timeout,
+                packet = struct.pack(">BHBBBBBBBBBBBBB", configblocksize, configpoint, heel_lace, right_left, timeout,
                     stride_rate, scale_factor_A, scale_factor_B, min_recording_voltage_MSB, min_recording_voltage_LSB,
                     deep_sleep_voltage_MSB, deep_sleep_voltage_LSB, R, G, B )
             elif configpoint == 0xAA05:
@@ -222,19 +222,19 @@ def main(bt):
                 max_conn_interval = int(raw_input())
                 print "ble slave latency : "
                 ble_slave_latency = int(raw_input())
-                packet = struct.pack(">HBBBB", configblocksize, 5, min_conn_interval, max_conn_interval, ble_slave_latency)
+                packet = struct.pack(">BHBBB", configblocksize, configpoint, min_conn_interval, max_conn_interval, ble_slave_latency)
             elif configpoint == 0xAA06:
                 print "config block size : "
                 configblocksize = int(raw_input())
                 print "raw data : "
                 raw_data = int(raw_input())
-                packet = struct.pack(">HBB", configblocksize, 6, raw_data)
+                packet = struct.pack(">BHB", configblocksize, configpoint, raw_data)
             elif configpoint == 0xAA07:
                 print "config block size : "
                 configblocksize = int(raw_input())
                 print "bettery capacity : "
                 bettery_capacity = int(raw_input())
-                packet = struct.pack(">BHB", configblocksize, 7, bettery_capacity)
+                packet = struct.pack(">BHB", configblocksize, configpoint, bettery_capacity)
             print_dict(scribe.write_config_data(packet))
         elif cmd == "perform diagnostics":
             print "update Calibration (default 0) :  "

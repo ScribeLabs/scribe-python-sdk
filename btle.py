@@ -72,7 +72,7 @@ class RunScribeDevice(ServiceBase):
             raise Exception("File annotation failed")
 
     def update_crc_checksum(self, file_block_size, file_point_buf):
-        self.write_packet("C" + chr(file_block_size) + struct.pack(">I", file_point_buf))
+        self.write_packet("C" + struct.pack(">BI", file_block_size, file_point_buf))
         resp = self._responses["C"].get()
         return OD(zip(["version major", "version minor", "file total size", "file point reg", "crc high", "crc low"],
                         struct.unpack(">BBIIBB", resp[1:13])))
@@ -134,8 +134,6 @@ class RunScribeDevice(ServiceBase):
         point = ord(resp[1]) << 16 + ord(resp[2]) << 8 + ord(resp[3])
         data = resp[4:20]
         f = open('temp.fit', 'a')
-        for d in data:
-            f.write(d)
         f.close()
 
     def status(self):
@@ -171,7 +169,7 @@ class RunScribeDevice(ServiceBase):
         resp = self._responses["T"].get()
         return OD(zip(["version_major", "version_minor"], struct.unpack(">BB", resp[1:3])))
 
-    def pooling_status(self):
+    def polling_status(self):
         self.write_packet("N")
         resp = self._responses["N"].get()
         return OD(zip(["version major", "version minor"], struct.unpack(">BB", resp[1:3])))
@@ -184,7 +182,6 @@ class RunScribeDevice(ServiceBase):
 
     def manufacturing_mode(self, state=0): # 0 - off, 1 - on
         self.write_packet("H" + struct.pack(">B", state))
-        print 'written packet'
         resp = self._responses["H"].get()
         return OD(zip(["version major", "version minor"], struct.unpack(">BB", resp[1:3])))
 
@@ -198,7 +195,6 @@ class RunScribeDevice(ServiceBase):
 
     def real_time_polling(self, mode): # 0 => Accel, 1 => Gyro, 2 => Compass
         if mode == 0:
-            print "Hello accel"
             self.write_packet("G\x80")
             print "write packet"
             resp = self._responses["G"].get()
@@ -228,6 +224,7 @@ class RunScribeDevice(ServiceBase):
     def read_config_data(self, configblocksize=16, configpoint=0):
         self.write_packet("U" + struct.pack(">BH", configblocksize, configpoint))
         resp = self._responses["U"].get()
+
         if configblocksize == 16:
             if configpoint == 0xAA01 or configpoint == 0xAA03:
                 return OD(zip(["config block size", "config point buf", "ble device 0", "ble device 1",
@@ -236,6 +233,7 @@ class RunScribeDevice(ServiceBase):
                                "ble device 12", "ble device 13", "ble device 14", "ble device 15", "ble device 16"],
                                 struct.unpack("HBBBBBBBBBBBBBBBBB", resp[1:20])))
             elif configpoint == 0xAA02:
+                data = resp[1:18]
                 return OD(zip(["config block size", "config point buf", "ble device led color", "heel/lace",
                                "right/left", "device time 0", "device time 1", "device time 2", "device time 3",
                                "device sample rate", "sensitivity", "timeout", "stride rate", "min conn interval",
