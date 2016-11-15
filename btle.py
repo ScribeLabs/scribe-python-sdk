@@ -18,7 +18,7 @@ CHAR_UUID = uuid.UUID("00001724-1212-EFDE-1523-785FEABCD123")
 
 # Class to represent a RunScibe device
 # Many of the commands aren't completely implemented
-class RunScribeDevice(ServiceBase):
+class ScribeDevice(ServiceBase):
     ADVERTISED = [SERVICE_UUID]
     SERVICES = [RS_SERV_UUID]
     CHARACTERISTICS = [CHAR_UUID]
@@ -305,7 +305,7 @@ class BTLE:
             self.cmd_queue.put(("disconnect",))
         self.cmd_queue.put(("connect", device))
         while not self.current_device is device: pass
-        return RunScribeDevice(self.current_device)
+        return ScribeDevice(self.current_device)
 
     def disconnect(self):
         if self.connected:
@@ -320,7 +320,7 @@ class BTLE:
         self.ble.clear_cached_data()
         adapter = self.ble.get_default_adapter()
         adapter.power_on()
-        RunScribeDevice.disconnect_devices()
+        ScribeDevice.disconnect_devices()
 
         while True:
             try:
@@ -339,7 +339,7 @@ class BTLE:
                     self.connected = False
                 elif cmd[0] == "connect":
                     cmd[1].connect()
-                    RunScribeDevice.discover(cmd[1])
+                    ScribeDevice.discover(cmd[1])
                     self.connected = True
                     self.current_device = cmd[1]
                 elif cmd[0] == "end":
@@ -347,7 +347,7 @@ class BTLE:
             except Queue.Empty: pass
 
             if self.scanning:
-                devices = set(RunScribeDevice.find_devices())
+                devices = set(ScribeDevice.find_devices())
                 if devices != self.devices:
                     if self.on_update:
                         self.on_update(devices)
