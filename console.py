@@ -36,7 +36,12 @@ def main(bt):
             r_type = int(raw_input())
             scribe.reboot(r_type)
         #elif cmd == "annotate file":
-        #    print_dict(scribe.annotate_file(0, 1))
+        #    print "Enter data 1 (32 bit number)"
+        #    data_1 = int(raw_input())
+        #    print "Enter data 2 (16 bit number)"
+        #    data_2 = int(raw_input())
+        #    print_dict(scribe.annotate_file(data_1, data_2))
+        #    print_dict(scribe.annotate_file(0,1))
         elif cmd == "update crc":
             print "file block size : (16-default)"
             file_block_size = int(raw_input())

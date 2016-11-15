@@ -7,6 +7,7 @@ from collections import OrderedDict as OD
 
 import Adafruit_BluefruitLE
 from Adafruit_BluefruitLE.services.servicebase import ServiceBase
+from Adafruit_BluefruitLE.services import DeviceInformation
 
 
 SERVICE_UUID = uuid.UUID("00001723-0000-1000-8000-00805f9b34fb") # 16-bit UUID "1723"
@@ -30,6 +31,7 @@ class RunScribeDevice(ServiceBase):
         self.files = []
         self.file_update = False
         self.file_read = False
+        self.serial = DeviceInformation(device).serial
 
     def _data_received(self, data):
         if data[0] == "D":
@@ -60,10 +62,11 @@ class RunScribeDevice(ServiceBase):
     def hard_reboot(self):
         self.write_packet("A\x01")
 
-    def annotate_file(self, data1, data2, type=2, event_type=52, fit_event_type=1, event_group=1):
+    def annotate_file(self, data1, data2, type_=2, event_type=52, fit_event_type=1, event_group=1):
         # FIT event type can be 1 or 2 for to specify Marker Type
-        self.write_packet("B" + chr(type) + chr(event_type) + chr(fit_event_type) + chr(event_group) +
+        self.write_packet("B" + chr(type_) + chr(event_type) + chr(fit_event_type) + chr(event_group) +
                           struct.pack(">I", data1) + struct.pack(">H", data2))
+        #self.write_packet("B" + struct.pack(">BBBBIH", type_, event_type, fit_event_type, event_group, data1, data2))
         resp = self._responses["B"].get()
         version_major, version_minor, result = struct.unpack("BBB", resp[1:4])
         if result == 1: # Success
@@ -103,101 +106,19 @@ class RunScribeDevice(ServiceBase):
 
         self.file_update = True
 
-
-    def get_file_info(self, file_list_index, file_block_size=16):
-        self.write("I" + struct.pack("BB", file_list_index, file_block_size))
-        resp = self._responses["I"].get()
-        result = OD(zip(["version major", "version minor", "file list index", "total size", "file point reg",
-                         "crc high", "crc low", "crc valid", "file deleted", "MSB", "LSB", "file status"],
-                        struct.unpack(">BBBIIBBBBBBB", resp[1:19])))
-        result["crc valid"] = result["crc valid"] == 1
-        result["file deleted"] = result["file deleted"] == 2
-        result["file status"] = ["normal", "truncated", "restored"][result["file status"]]
-        return result
-
-    def get_led_color(self):
-        self.write_packet("K")
-        resp = self._responses["K"].get()
-        r, g, b = struct.unpack(">BBB", resp[1:4])
-        return (r, g, b)
-
-    def set_led_color(self, r, g, b):
-        self.write_packet("J" + chr(r) + chr(g) + chr(b))
-        resp = self._responses["J"].get()
-        r, g, b = struct.unpack(">BBB", resp[1:4])
-        return (r, g, b)        
-
-    def read_data(self, file_list_index, file_point_reg, file_block_size=16):
-        self.write_packet("R" + struct.pack(">BBI", file_list_index, file_block_size, file_point_reg))
-
-    def _update_read(self, resp):
-        point = ord(resp[1]) << 16 + ord(resp[2]) << 8 + ord(resp[3])
-        data = resp[4:20]
-        f = open('temp.fit', 'a')
-        f.close()
-
-    def status(self):
-        self.write_packet("S")
-        resp = self._responses["S"].get()
-        result = OD(zip(["version major", "version minor", "battery remaing percent", "file count undeleted",
-                           "flash free percent", "temperature", "last access time", "mode", "battery type",
-                           "battery mode", "MSB", "LSB", "battery usage time", "file count all", "diagnostics result",
-                           "battery charge time"], struct.unpack(">BBBBBbIBBBBBBBBB", resp[1:20])))
-        result["mode"] = ["sleeping", "waiting", "recording", "paused", "erasing", "syncing", "manufacture", "error"]\
-            [result["mode"]]
-        result["battery type"] = ["Primary Lithium", "Lilon", "LiPoly"][result["battery type"]]
-        result["battery mode"] = ["active", "idle", "sleep", "charge"][result["battery mode"]]
-        result["battery usage time"] *= 10
-        result["battery charge time"] *= 10
-        # Time results are in minutes
-        return result
-
-    def stop_read_data(self):
-        self.write_packet("P")
-        resp = self._responses["P"].get()
-        return OD(zip(["version major", "version minor", "file read crc"], struct.unpack(">BBH", resp[1:5])))
-
-    def read_time(self):
-        self.write_packet("W")
-        resp = self._responses["W"].get()
-        return OD(zip(["version major", "version minor", "system time", "last access time", "last boot time",
-                       "time since last boot"], struct.unpack(">BBIIII", resp[1:19])))
-
-    def set_time(self, device_time_0, device_time_1, device_time_2, device_time_3):
-        self.write_packet("T" + struct.pack(">BBBB", device_time_0, device_time_1, device_time_2, device_time_3))
-        resp = self._responses["T"].get()
-        return OD(zip(["version_major", "version_minor"], struct.unpack(">BB", resp[1:3])))
-
-    def polling_status(self):
-        self.write_packet("N")
-        resp = self._responses["N"].get()
-        return OD(zip(["version major", "version minor"], struct.unpack(">BB", resp[1:3])))
-
     def erase_data(self, erase_type=4 , erase_bit_mask=1):
         self.write_packet("E" + struct.pack(">BB", erase_type, erase_bit_mask))
         resp = self._responses["E"].get()
         return OD(zip(["version major", "version minor", "erase flash result", "file total size", "file point reg",
                          "crc high", "crc low"], struct.unpack(">BBBIIBB", resp[1:14])))
 
-    def manufacturing_mode(self, state=0): # 0 - off, 1 - on
-        self.write_packet("H" + struct.pack(">B", state))
-        resp = self._responses["H"].get()
-        return OD(zip(["version major", "version minor"], struct.unpack(">BB", resp[1:3])))
-
     def DFU_mode(self):
         self.write_packet("F")
-
-    def set_mode(self, command=0, state=1):
-        self.write_packet("M" + struct.pack(">BB", command, state))
-        resp = self._responses["M"].get()
-        return OD(zip(["version major", "version minor"], struct.unpack(">BB", resp[1:3])))
 
     def real_time_polling(self, mode): # 0 => Accel, 1 => Gyro, 2 => Compass
         if mode == 0:
             self.write_packet("G\x80")
-            print "write packet"
             resp = self._responses["G"].get()
-            print "return data"
             return OD(zip(["accel 0", "accel 1", "accel 2", "accel 3", "accel 4",
                             "accel 5", "quat 0", "quat 1", "quat 2", "quat 3", "quat 4", "quat 5",
                             "quat 6", "quat 7"], struct.unpack("BBBBBBBBBBBBBB", resp[1:15])))
@@ -215,10 +136,93 @@ class RunScribeDevice(ServiceBase):
                             "compass 5", "quat 0", "quat 1", "quat 2", "quat 3", "quat 4", "quat 5",
                             "quat 6", "quat 7"], struct.unpack("BBBBBBBBBBBBBBB", resp[1:16])))
 
+
+    def manufacturing_mode(self, state=0): # 0 - off, 1 - on
+        self.write_packet("H" + struct.pack(">B", state))
+        resp = self._responses["H"].get()
+        return OD(zip(["version major", "version minor"], struct.unpack(">BB", resp[1:3])))
+
+    def get_file_info(self, file_list_index, file_block_size=16):
+        self.write("I" + struct.pack("BB", file_list_index, file_block_size))
+        resp = self._responses["I"].get()
+        result = OD(zip(["version major", "version minor", "file list index", "total size", "file point reg",
+                         "crc high", "crc low", "crc valid", "file deleted", "MSB", "LSB", "file status"],
+                        struct.unpack(">BBBIIBBBBBBB", resp[1:19])))
+        result["crc valid"] = result["crc valid"] == 1
+        result["file deleted"] = result["file deleted"] == 2
+        result["file status"] = ["normal", "truncated", "restored"][result["file status"]]
+        return result
+
+    def set_led_color(self, r, g, b):
+        self.write_packet("J" + chr(r) + chr(g) + chr(b))
+        resp = self._responses["J"].get()
+        r, g, b = struct.unpack(">BBB", resp[1:4])
+        return (r, g, b)
+
+    def get_led_color(self):
+        self.write_packet("K")
+        resp = self._responses["K"].get()
+        r, g, b = struct.unpack(">BBB", resp[1:4])
+        return (r, g, b)
+
     def light_led(self, mode, cycles, r, g, b):
         self.write_packet("L" + chr(mode) + chr(cycles) +  chr(r) + chr(g) + chr(b))
         resp = self._responses["L"].get()
         return OD(zip(["Mode", "cycles", "R" , "G", "B"],struct.unpack("BBBBB", resp[1:6])))
+
+    def set_mode(self, command=0, state=1):
+        self.write_packet("M" + struct.pack(">BB", command, state))
+        resp = self._responses["M"].get()
+        return OD(zip(["version major", "version minor"], struct.unpack(">BB", resp[1:3])))
+
+    def polling_status(self):
+        self.write_packet("N")
+        resp = self._responses["N"].get()
+        return OD(zip(["version major", "version minor"], struct.unpack(">BB", resp[1:3])))
+
+    def stop_read_data(self):
+        self.write_packet("P")
+        resp = self._responses["P"].get()
+        return OD(zip(["version major", "version minor", "file read crc"], struct.unpack(">BBH", resp[1:5])))
+
+    def read_data(self, file_list_index, file_point_reg, file_block_size=16):
+        self.write_packet("R" + struct.pack(">BBI", file_list_index, file_block_size, file_point_reg))
+
+    def _update_read(self, resp):
+        point = ord(resp[1]) << 16 + ord(resp[2]) << 8 + ord(resp[3])
+        data = resp[4:20]
+        name = str(self.serial) + '.fit'
+        f = open(name, 'a')
+        for d in data:
+            f.write(d)
+        f.close()
+
+    def status(self):
+        self.write_packet("S")
+        resp = self._responses["S"].get()
+        result = OD(zip(["version major", "version minor", "battery remaining percent", "file count undeleted",
+                           "flash free percent", "temperature", "last access time", "mode", "battery type",
+                           "battery mode", "MSB", "LSB", "battery usage time", "file count all", "diagnostics result",
+                           "battery charge time"], struct.unpack(">BBBBBbIBBBBBBBBB", resp[1:20])))
+        result["mode"] = ["sleeping", "waiting", "recording", "paused", "erasing", "syncing", "manufacture", "error"]\
+            [result["mode"]]
+        result["battery type"] = ["Primary Lithium", "Lilon", "LiPoly"][result["battery type"]]
+        result["battery mode"] = ["active", "idle", "sleep", "charge"][result["battery mode"]]
+        result["battery usage time"] *= 10
+        result["battery charge time"] *= 10
+        # Time results are in minutes
+        return result
+
+    def set_time(self, device_time_0, device_time_1, device_time_2, device_time_3):
+        self.write_packet("T" + struct.pack(">BBBB", device_time_0, device_time_1, device_time_2, device_time_3))
+        resp = self._responses["T"].get()
+        return OD(zip(["version_major", "version_minor"], struct.unpack(">BB", resp[1:3])))
+
+    def read_time(self):
+        self.write_packet("W")
+        resp = self._responses["W"].get()
+        return OD(zip(["version major", "version minor", "system time", "last access time", "last boot time",
+                       "time since last boot"], struct.unpack(">BBIIII", resp[1:19])))
 
     def read_config_data(self, configblocksize=16, configpoint=0):
         self.write_packet("U" + struct.pack(">BH", configblocksize, configpoint))

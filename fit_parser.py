@@ -18,15 +18,12 @@ def replace_keys(data_dict, format_dict):
 			break
 	return data_dict
 
-if __name__ == "__main__":
-
+def fit_to_csv(file_path, file_name):
   definitions = get_definitions()
   definition_map = get_definition_map()
 
-  file_path = '../../data_files/python_sdk_example/'
-  file_name = 'P4S16B_REC3.fit'
-  output_file_1 = 'P4S16B_REC3_1.csv'
-  output_file_2 = 'P4S16B_REC3_2.csv'
+  output_file_1 = file_name[0:file_name.index('.')] + '_1.csv'
+  output_file_2 = file_name[0:file_name.index('.')] + '_2.csv'
 
   file_obj = open(file_path + file_name, 'rb')
   raw_fit_data = file_obj.read()
@@ -118,3 +115,8 @@ if __name__ == "__main__":
   f.close()
 
 
+if __name__ == "__main__":
+
+  file_path = '../../data_files/python_sdk_example/'
+  file_name = 'P4S16B_REC3.fit'
+  fit_to_csv(file_path, file_name)
