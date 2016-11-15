@@ -1,30 +1,27 @@
 # README #
 
-This is a Python SDK for runscribe devices. 
-### What is this repository for? ###
+This is a Python SDK for runscribe devices. This SDK provides interface for connecting and communicating with the Runscribe devices through BTLE protocol 
 
-* Quick summary
-This SDK provides interface for connecting and communicating with the Runscribe devices through BTLE protocol 
-* Version 1.0
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+# Version #
+1.0
 
-### How do I get set up? ###
+## How do I get set up? ##
 
 Python SDK requires additional support library (called Adafruit Python BluefruitLE : https://github.com/adafruit/Adafruit_Python_BluefruitLE ). Pull git repo using the above link and follow their instructions to install the library into your machine. This library will work only for linux and mac os.
 
-### Example Script ###
-Full script containing the examples of each operation : python console.py
+## Example Script ##
+Full script containing the examples of each operation : 
+``` python console.py ```
 Required python version : 2.7 + 
 
 
-### Usage ###
+## Usage ##
 
-* To Scan BTLE enabled devices :
-* * scan(self, on_update)
-    This will scan for nearby BTLE devices and provides a list of all such devices.
+### To Scan BTLE enabled devices ###
+* ** scan(self, on_update) ** : This will scan for nearby BTLE devices and provides a list of all such devices.
 
-
-*from btle import BTLE
+```
+from btle import BTLE
 devices = []
 def update_list(current_devices):
         for device in current_devices:
@@ -32,31 +29,27 @@ def update_list(current_devices):
                 devices.append(device)
 bt = BTLE() 
 bt.scan(update_list)
-*
+```
 
 
-* Connect to scribe device : 
-* * connect_to(device)
- This command will connect to the BTLE device and return connected scribe device. Using this returned scribe we can call more functions, for and can configure the device or get information about connected scribe.
-
-For example to reboot device  :
-
-*from btle import BTLE
+### Connect to scribe device ###
+* ** connect_to(device) ** : This command will connect to the BTLE device and return connected scribe device. Using this returned scribe we can call more functions, for and can configure the device or get information about connected scribe.
+For example to reboot device 
+```
+from btle import BTLE
 bt = BTLE() 
 device = devices[1] 
 scribe = bt.connect_to(device)
 scribe.reboot(r_type) 
+```
 
-*
+### Commands related to scribe operations : ###
+** reboot ** : reboot the device
 
+```scribe.reboot(r_type)```
 
-#### Commands related to scribe operations : ####
-* reboot : 
-* * Inputs : 
-* * * r_type : 0 - soft, 1 - Hard reboot
-* * Output : nil
-Example: 
-scribe.reboot(r_type)
+##### r_type : 0 - Soft reboot, 1 - Hard reboot #####
+
 
 
  update crc :
@@ -415,6 +408,3 @@ dis.fw_revision - Firmware Revision: 20.16
 dis.system_id - System ID: None
 dis.regulatory_cert - Regulatory Cert: None
 dis.pnp_id - PnP ID: None
-
-
-
